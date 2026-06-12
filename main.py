@@ -10,8 +10,91 @@ import random
 import string
 import uvicorn
 import os
+import base64
+import json
+import time
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 app = FastAPI(title="河神電子序號管理系統")
+
+MINING_SPREADSHEET_ID = os.environ.get("MINING_SPREADSHEET_ID", "1-rEh7Ss4pewD9_bj6xtB8F2chsW2cMT600QDe5jYZE4")
+MEMBER_SHEET_NAME = os.environ.get("MEMBER_SHEET_NAME", "會員資料")
+MEMBER_ACCOUNT_COLUMN_INDEX = max(int(os.environ.get("MEMBER_ACCOUNT_COLUMN_INDEX", "5")) - 1, 0)
+MEMBER_CACHE_SECONDS = int(os.environ.get("MEMBER_CACHE_SECONDS", "300"))
+MEMBER_AUTH_REQUIRED = os.environ.get("MEMBER_AUTH_REQUIRED", "1").strip().lower() not in ("0", "false", "no", "off")
+_GS_CLIENT = None
+_MEMBER_CACHE = {"loaded_at": 0.0, "accounts": set()}
+
+
+def _normalize_member_account(account: str) -> str:
+    return (account or "").strip().lower()
+
+
+def _service_account_info():
+    raw_b64 = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON_B64", "").strip()
+    raw_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON", "").strip()
+    if raw_b64:
+        return json.loads(base64.b64decode(raw_b64).decode("utf-8"))
+    if raw_json:
+        return json.loads(raw_json)
+    raise RuntimeError("Missing Google service account credentials")
+
+
+def _get_google_client():
+    global _GS_CLIENT
+    if _GS_CLIENT is None:
+        scopes = [
+            "https://spreadsheets.google.com/feeds",
+            "https://www.googleapis.com/auth/drive",
+        ]
+        creds = ServiceAccountCredentials.from_json_keyfile_dict(_service_account_info(), scopes)
+        _GS_CLIENT = gspread.authorize(creds)
+    return _GS_CLIENT
+
+
+def _load_member_accounts(force: bool = False):
+    now_ts = time.time()
+    if (
+        not force
+        and _MEMBER_CACHE["accounts"]
+        and now_ts - _MEMBER_CACHE["loaded_at"] < MEMBER_CACHE_SECONDS
+    ):
+        return _MEMBER_CACHE["accounts"]
+
+    client = _get_google_client()
+    worksheet = client.open_by_key(MINING_SPREADSHEET_ID).worksheet(MEMBER_SHEET_NAME)
+    rows = worksheet.get_all_values()[1:]
+    accounts = set()
+    for row in rows:
+        if len(row) > MEMBER_ACCOUNT_COLUMN_INDEX:
+            account = _normalize_member_account(row[MEMBER_ACCOUNT_COLUMN_INDEX])
+            if account:
+                accounts.add(account)
+
+    _MEMBER_CACHE["loaded_at"] = now_ts
+    _MEMBER_CACHE["accounts"] = accounts
+    return accounts
+
+
+def validate_member_account(member_account: str):
+    normalized = _normalize_member_account(member_account)
+    if not normalized:
+        return False, "請輸入會員帳號", normalized
+
+    try:
+        accounts = _load_member_accounts()
+    except Exception as exc:
+        print("Member account validation error:", exc)
+        if MEMBER_AUTH_REQUIRED:
+            return False, "會員資料驗證尚未設定，請聯絡管理員", normalized
+        return True, "會員資料驗證略過", normalized
+
+    if normalized not in accounts:
+        return False, "查無此會員帳號，請確認會員帳號是否正確", normalized
+
+    return True, "會員帳號驗證成功", normalized
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -258,7 +341,7 @@ async def take_action(serial_id: int, action: str, days: int = None):
 
 
 @app.get("/api/verify")
-async def verify_serial(code: str, request: Request):
+async def verify_serial(code: str, request: Request, member_account: str = ""):
     db = models.SessionLocal()
     try:
         lic = db.query(models.License).filter(models.License.serial_code == code).first()
@@ -270,6 +353,14 @@ async def verify_serial(code: str, request: Request):
             return {"valid": False, "message": "此序號已被停用"}
         if lic.status == "used_once":
             return {"valid": False, "message": "此一次性序號已使用完畢"}
+
+        member_valid, member_message, normalized_member = validate_member_account(member_account)
+        if not member_valid:
+            return {
+                "valid": False,
+                "message": member_message,
+                "member_valid": False
+            }
 
         now = datetime.utcnow()
 
@@ -284,7 +375,9 @@ async def verify_serial(code: str, request: Request):
             return {
                 "valid": True,
                 "days_left": days_left,
-                "expiry": lic.expiry_date.strftime("%Y-%m-%d") if lic.expiry_date else "永久"
+                "expiry": lic.expiry_date.strftime("%Y-%m-%d") if lic.expiry_date else "永久",
+                "member_valid": True,
+                "member_account": normalized_member
             }
 
         if lic.status == "unused":
@@ -299,7 +392,9 @@ async def verify_serial(code: str, request: Request):
                     "days_left": 0,
                     "expiry": "一次性登入已使用",
                     "first_time": True,
-                    "one_time": True
+                    "one_time": True,
+                    "member_valid": True,
+                    "member_account": normalized_member
                 }
 
             try:
@@ -318,13 +413,14 @@ async def verify_serial(code: str, request: Request):
                 "valid": True,
                 "days_left": days,
                 "expiry": lic.expiry_date.strftime("%Y-%m-%d"),
-                "first_time": True
+                "first_time": True,
+                "member_valid": True,
+                "member_account": normalized_member
             }
 
         return {"valid": False, "message": "狀態錯誤"}
     finally:
         db.close()
-
 
 class ImportSerial(BaseModel):
     code: str
