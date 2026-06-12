@@ -13,6 +13,9 @@ import os
 import base64
 import json
 import time
+import csv
+import urllib.parse
+import urllib.request
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -53,6 +56,25 @@ def _get_google_client():
     return _GS_CLIENT
 
 
+def _load_member_accounts_from_public_csv():
+    query = urllib.parse.urlencode({
+        "tqx": "out:csv",
+        "sheet": MEMBER_SHEET_NAME,
+        "range": "E:E",
+    })
+    url = f"https://docs.google.com/spreadsheets/d/{MINING_SPREADSHEET_ID}/gviz/tq?{query}"
+    with urllib.request.urlopen(url, timeout=12) as response:
+        body = response.read().decode("utf-8-sig")
+
+    accounts = set()
+    for row in csv.reader(body.splitlines()):
+        if not row:
+            continue
+        account = _normalize_member_account(row[0])
+        if account and account not in ("會員帳號", "会员账号"):
+            accounts.add(account)
+    return accounts
+
 def _load_member_accounts(force: bool = False):
     now_ts = time.time()
     if (
@@ -62,15 +84,19 @@ def _load_member_accounts(force: bool = False):
     ):
         return _MEMBER_CACHE["accounts"]
 
-    client = _get_google_client()
-    worksheet = client.open_by_key(MINING_SPREADSHEET_ID).worksheet(MEMBER_SHEET_NAME)
-    rows = worksheet.get_all_values()[1:]
-    accounts = set()
-    for row in rows:
-        if len(row) > MEMBER_ACCOUNT_COLUMN_INDEX:
-            account = _normalize_member_account(row[MEMBER_ACCOUNT_COLUMN_INDEX])
-            if account:
-                accounts.add(account)
+    try:
+        client = _get_google_client()
+        worksheet = client.open_by_key(MINING_SPREADSHEET_ID).worksheet(MEMBER_SHEET_NAME)
+        rows = worksheet.get_all_values()[1:]
+        accounts = set()
+        for row in rows:
+            if len(row) > MEMBER_ACCOUNT_COLUMN_INDEX:
+                account = _normalize_member_account(row[MEMBER_ACCOUNT_COLUMN_INDEX])
+                if account:
+                    accounts.add(account)
+    except Exception as exc:
+        print("Google member sheet credential read failed, trying public CSV:", exc)
+        accounts = _load_member_accounts_from_public_csv()
 
     _MEMBER_CACHE["loaded_at"] = now_ts
     _MEMBER_CACHE["accounts"] = accounts
