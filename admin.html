@@ -221,7 +221,7 @@ tr:hover td{background:rgba(255,255,255,0.02);}
 <div class="overlay" id="dlg-add"><div class="modal">
     <div class="modal-header"><h3>✨ 新增序號</h3><span style="cursor:pointer" onclick="closeModal('dlg-add')">✕</span></div>
     <div class="field"><label>生成數量 (1-200)</label><input type="number" id="g-count" value="1"></div>
-    <div class="field"><label>序號類型</label><select id="g-days"><option value="0">一次性登入</option><option value="1">1 天試用</option><option value="7">7 天</option><option value="30">30 天</option><option value="365">1 年</option><option value="9999">永久</option></select></div>
+    <div class="field"><label>序號類型</label><select id="g-days"><option value="0">一次性登入</option><option value="1">1 天試用</option><option value="2">2 天</option><option value="3">3 天</option><option value="7">7 天</option><option value="30">30 天</option><option value="365">1 年</option><option value="9999">永久</option></select></div>
     <div class="field"><label>管理備註</label><input type="text" id="g-note" placeholder="例如：管理員"></div>
     <div style="display:flex; gap:12px; margin-top:20px;"><button class="btn btn-outline" style="flex:1; justify-content:center;" onclick="closeModal('dlg-add')">取消</button><button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="doGenerate()">確認新增</button></div>
 </div></div>
