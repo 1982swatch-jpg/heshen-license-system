@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>管理員登入 - 河神電子序號管理</title>
+<style>
+*{ box-sizing:border-box; margin:0; padding:0; }
+
+:root{
+  --accent:  #00ff9c;
+  --accent2: #4aa3ff;
+  --gold:    #ffd36b;
+  --bg:      #020612;
+  --panel:   rgba(17,24,39,.92);
+  --line:    rgba(255,255,255,.10);
+  --muted:   #94a3b8;
+  --text:    #f8fafc;
+  --red:     #ff6b6b;
+}
+
+body{
+  min-height:100vh;
+  background:
+    linear-gradient(180deg, rgba(2,6,18,.82), rgba(2,8,20,.97) 60%, #000 100%),
+    radial-gradient(circle at 16% 20%, rgba(0,255,156,.22), transparent 30%),
+    radial-gradient(circle at 84% 18%, rgba(74,163,255,.20), transparent 28%),
+    radial-gradient(circle at 50% 85%, rgba(255,210,80,.10), transparent 36%),
+    url("https://images.unsplash.com/photo-1529900748604-07564a03e7a6?auto=format&fit=crop&w=1800&q=80");
+  background-size:cover;
+  background-position:center;
+  background-attachment:fixed;
+  font-family:"Microsoft JhengHei","PingFang TC",Arial,sans-serif;
+  color:var(--text);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  overflow-x:hidden;
+}
+
+/* 背景光暈 */
+.beam{
+  position:fixed;
+  border-radius:50%;
+  filter:blur(72px);
+  pointer-events:none;
+  z-index:0;
+  animation:drift 18s ease-in-out infinite alternate;
+}
+.beam.g{ width:60vw; height:60vw; left:-20vw; top:5vh;  background:rgba(0,255,156,.14); }
+.beam.b{ width:55vw; height:55vw; right:-18vw;top:20vh; background:rgba(74,163,255,.16); animation-delay:-6s; }
+.beam.y{ width:40vw; height:40vw; left:20vw; bottom:-20vw;background:rgba(255,204,80,.08); animation-delay:-11s; }
+
+@keyframes drift{
+  0%  { transform:translate3d(0,0,0)     scale(1);    }
+  100%{ transform:translate3d(28px,-22px,0) scale(1.07); }
+}
+
+/* ── 卡片 ── */
+.wrap{
+  position:relative;
+  z-index:1;
+  width:100%;
+  max-width:440px;
+}
+
+.logo-bar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-bottom:28px;
+}
+.logo-icon{
+  width:44px; height:44px;
+  background:linear-gradient(135deg,#00ff9c,#4aa3ff);
+  border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px;
+  box-shadow:0 0 20px rgba(0,255,156,.30);
+}
+.logo-name{
+  font-size:18px; font-weight:900; letter-spacing:1px; color:#fff;
+}
+.logo-name small{ color:var(--accent); font-size:11px; display:block; letter-spacing:2px; margin-top:1px; }
+
+.card{
+  background:
+    radial-gradient(circle at top left, rgba(0,255,156,.09), transparent 40%),
+    linear-gradient(145deg, rgba(17,24,39,.94), rgba(6,12,26,.90));
+  border:1px solid rgba(0,255,156,.20);
+  border-radius:30px;
+  padding:40px 36px 36px;
+  box-shadow:
+    0 24px 72px rgba(0,0,0,.55),
+    0 0 40px rgba(0,255,156,.07),
+    inset 0 1px 0 rgba(255,255,255,.06);
+  position:relative;
+  overflow:hidden;
+}
+.card::before{
+  content:"";
+  position:absolute;
+  top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg, transparent, var(--accent) 40%, var(--accent2) 60%, transparent);
+}
+
+.card-title{
+  font-size:26px; font-weight:900; letter-spacing:.5px;
+  margin-bottom:6px;
+}
+.card-sub{
+  color:var(--muted); font-size:13px; margin-bottom:32px; line-height:1.5;
+}
+
+/* ── 分頁切換 ── */
+.tabs{
+  display:flex; gap:6px;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:4px;
+  margin-bottom:28px;
+}
+.tab-btn{
+  flex:1; padding:9px;
+  border:none; border-radius:11px;
+  font-size:13px; font-weight:700;
+  cursor:pointer; transition:all .22s;
+  background:transparent; color:var(--muted);
+}
+.tab-btn.active{
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  color:#07111f;
+  box-shadow:0 4px 14px rgba(0,255,156,.22);
+}
+
+/* ── 表單 ── */
+.field{ margin-bottom:18px; }
+.field label{
+  display:block; font-size:12px; font-weight:700;
+  color:var(--muted); letter-spacing:.8px;
+  margin-bottom:7px;
+}
+.field input{
+  width:100%; padding:14px 16px;
+  background:rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:14px;
+  color:#fff; font-size:15px;
+  outline:none;
+  transition:border-color .22s, box-shadow .22s;
+  font-family:inherit;
+}
+.field input::placeholder{ color:rgba(255,255,255,.28); }
+.field input:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(0,255,156,.12);
+}
+.field input.err{ border-color:var(--red); box-shadow:0 0 0 3px rgba(255,107,107,.12); }
+
+.remember{
+  display:flex; align-items:center; gap:8px;
+  font-size:13px; color:var(--muted);
+  margin-bottom:24px; cursor:pointer;
+  user-select:none;
+}
+.remember input[type=checkbox]{ display:none; }
+.chk-box{
+  width:18px; height:18px; border-radius:5px;
+  border:1.5px solid rgba(255,255,255,.22);
+  display:flex; align-items:center; justify-content:center;
+  transition:all .2s; flex-shrink:0;
+}
+.remember input:checked ~ .chk-box{
+  background:var(--accent); border-color:var(--accent);
+}
+.remember input:checked ~ .chk-box::after{ content:"✓"; font-size:12px; color:#07111f; font-weight:900; }
+
+.submit-btn{
+  width:100%; padding:16px;
+  background:linear-gradient(90deg, var(--accent), var(--accent2));
+  border:none; border-radius:15px;
+  color:#07111f; font-size:17px; font-weight:900;
+  cursor:pointer; transition:all .25s;
+  box-shadow:0 8px 24px rgba(0,255,156,.22);
+  letter-spacing:.3px;
+}
+.submit-btn:hover{
+  transform:translateY(-2px);
+  box-shadow:0 14px 32px rgba(0,255,156,.30);
+}
+.submit-btn:active{ transform:translateY(0); }
+.submit-btn:disabled{
+  opacity:.6; cursor:not-allowed; transform:none;
+}
+
+/* ── 錯誤訊息 ── */
+.alert{
+  display:none;
+  padding:12px 14px;
+  border-radius:12px;
+  font-size:13px;
+  margin-bottom:18px;
+  line-height:1.5;
+}
+.alert.err{
+  background:rgba(255,107,107,.12);
+  border:1px solid rgba(255,107,107,.28);
+  color:#ff9b9b;
+}
+.alert.ok{
+  background:rgba(0,255,156,.10);
+  border:1px solid rgba(0,255,156,.25);
+  color:var(--accent);
+}
+
+/* ── 序號驗證面板 ── */
+.serial-badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:5px 12px; border-radius:999px;
+  background:rgba(255,211,107,.10);
+  border:1px solid rgba(255,211,107,.22);
+  color:var(--gold); font-size:11px; font-weight:700;
+  letter-spacing:1px; margin-bottom:22px;
+}
+
+/* ── 頁尾 ── */
+.footer{
+  text-align:center; margin-top:22px;
+  color:rgba(255,255,255,.30); font-size:12px; line-height:1.8;
+}
+.footer a{ color:var(--accent2); text-decoration:none; }
+.footer a:hover{ color:var(--accent); }
+
+/* 管理員入口小連結 */
+.admin-hint{
+  text-align:center; margin-top:16px;
+  font-size:12px; color:var(--muted);
+}
+.admin-hint a{ color:var(--accent2); text-decoration:none; }
+
+/* ── 搖晃 ── */
+@keyframes shake{
+  0%,100%{ transform:translateX(0); }
+  25%    { transform:translateX(-7px); }
+  50%    { transform:translateX(7px); }
+  75%    { transform:translateX(-7px); }
+}
+.shake{ animation:shake .38s ease; }
+
+/* ── 載入旋轉 ── */
+@keyframes spin{ to{ transform:rotate(360deg); } }
+.spinner{
+  display:inline-block; width:16px; height:16px;
+  border:2px solid rgba(7,17,31,.5);
+  border-top-color:#07111f;
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+  vertical-align:middle; margin-right:6px;
+}
+
+@media(max-width:480px){
+  .card{ padding:30px 22px 26px; border-radius:26px; }
+  .card-title{ font-size:22px; }
+}
+</style>
+</head>
+<body>
+
+<div class="beam g"></div>
+<div class="beam b"></div>
+<div class="beam y"></div>
+
+<div class="wrap">
+
+  <!-- Logo -->
+  <div class="logo-bar">
+    <div class="logo-icon">🎰</div>
+    <div class="logo-name">
+      河神電子序號管理
+      <small>LICENSE MANAGER</small>
+    </div>
+  </div>
+
+  <div class="card">
+
+    <!-- 分頁：管理員 / 序號驗證 -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('admin')" id="tab-admin">🔐 管理員登入</button>
+      <button class="tab-btn" onclick="switchTab('serial')" id="tab-serial">🔑 序號驗證</button>
+    </div>
+
+    <!-- ── 管理員登入面板 ── -->
+    <div id="panel-admin">
+      <div class="card-title">歡迎回來 👋</div>
+      <div class="card-sub">請輸入管理員帳號與密碼以進入後台</div>
+
+      <div id="alert-admin" class="alert err"></div>
+
+      <div class="field">
+        <label>帳號 ACCOUNT</label>
+        <input type="text" id="admin-user" placeholder="輸入管理員帳號"
+               autocomplete="username" autocapitalize="none" spellcheck="false" />
+      </div>
+      <div class="field">
+        <label>密碼 PASSWORD</label>
+        <input type="password" id="admin-pass" placeholder="輸入密碼"
+               autocomplete="current-password" />
+      </div>
+
+      <label class="remember">
+        <input type="checkbox" id="remember-me" />
+        <span class="chk-box"></span>
+        記住我 30 天
+      </label>
+
+      <button class="submit-btn" id="btn-admin" onclick="doAdminLogin()">登入後台</button>
+    </div>
+
+    <!-- ── 序號驗證面板 ── -->
+    <div id="panel-serial" style="display:none">
+      <div class="serial-badge">✦ 授權驗證通道</div>
+      <div class="card-title">序號驗證</div>
+      <div class="card-sub">輸入您的授權序號以啟用或查詢到期狀態</div>
+
+      <div id="alert-serial" class="alert err"></div>
+
+      <div class="field">
+        <label>授權序號 LICENSE KEY</label>
+        <input type="text" id="serial-input" placeholder="XXXX-XXXX-XXXX"
+               maxlength="14" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+      </div>
+
+      <button class="submit-btn" id="btn-serial" onclick="doSerialVerify()">驗證序號</button>
+    </div>
+
+  </div><!-- /.card -->
+
+  <div class="footer">
+    © 2026 Electronic Game Data Lab ·
+    <a href="/">返回分析系統</a>
+  </div>
+</div><!-- /.wrap -->
+
+<script>
+// ── API 基礎路徑（相同 origin 的 FastAPI 後端）────────────────────────
+const API = '';   // 同一伺服器，直接用相對路徑
+
+// ── 分頁切換 ────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('panel-admin').style.display  = tab === 'admin'  ? '' : 'none';
+  document.getElementById('panel-serial').style.display = tab === 'serial' ? '' : 'none';
+  document.getElementById('tab-admin').classList.toggle('active',  tab === 'admin');
+  document.getElementById('tab-serial').classList.toggle('active', tab === 'serial');
+  document.getElementById('alert-admin').style.display  = 'none';
+  document.getElementById('alert-serial').style.display = 'none';
+}
+
+// ── 顯示提示 ────────────────────────────────────────────────────────────
+function showAlert(id, msg, type='err') {
+  const el = document.getElementById(id);
+  el.className = 'alert ' + type;
+  el.innerHTML = msg;
+  el.style.display = 'block';
+}
+
+// ── 搖晃卡片 ────────────────────────────────────────────────────────────
+function shakeCard() {
+  const c = document.querySelector('.card');
+  c.classList.remove('shake');
+  void c.offsetWidth; // reflow
+  c.classList.add('shake');
+  setTimeout(() => c.classList.remove('shake'), 400);
+}
+
+// ── Enter 鍵支援 ─────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  ['admin-user','admin-pass'].forEach(id => {
+    document.getElementById(id)?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') doAdminLogin();
+    });
+  });
+  document.getElementById('serial-input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSerialVerify();
+  });
+
+  // 自動填入記住的帳號
+  const saved = localStorage.getItem('admin_saved_user');
+  if (saved) {
+    document.getElementById('admin-user').value = saved;
+    document.getElementById('remember-me').checked = true;
+  }
+
+  // 若已有 token，直接導向後台
+  const token = localStorage.getItem('admin_token') || sessionStorage.getItem('admin_token');
+  if (token) {
+    verifyTokenAndRedirect(token);
+  }
+});
+
+// ── 驗證已存 Token ────────────────────────────────────────────────────────
+async function verifyTokenAndRedirect(token) {
+  try {
+    const res = await fetch(API + '/api/admin/stats', {
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (res.ok) {
+      window.location.href = '/admin.html';
+    }
+  } catch(e) {}
+}
+
+// ── 管理員登入 ────────────────────────────────────────────────────────────
+async function doAdminLogin() {
+  const user    = document.getElementById('admin-user').value.trim();
+  const pass    = document.getElementById('admin-pass').value;
+  const remeber = document.getElementById('remember-me').checked;
+  const btn     = document.getElementById('btn-admin');
+  const alertId = 'alert-admin';
+
+  if (!user || !pass) {
+    showAlert(alertId, '❌ 請輸入帳號與密碼');
+    shakeCard(); return;
+  }
+
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span>登入中...';
+  document.getElementById(alertId).style.display = 'none';
+
+  try {
+    // FastAPI OAuth2PasswordRequestForm 需要 form-data 格式
+    const body = new URLSearchParams({ username: user, password: pass });
+    const res  = await fetch(API + '/api/admin/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.access_token) {
+      showAlert(alertId, '✅ 登入成功，正在跳轉...', 'ok');
+
+      if (remeber) {
+        localStorage.setItem('admin_token',    data.access_token);
+        localStorage.setItem('admin_saved_user', user);
+      } else {
+        sessionStorage.setItem('admin_token',  data.access_token);
+        localStorage.removeItem('admin_saved_user');
+      }
+
+      setTimeout(() => { window.location.href = '/admin.html'; }, 800);
+    } else {
+      const msg = data.detail || '帳號或密碼錯誤';
+      showAlert(alertId, '❌ ' + msg);
+      shakeCard();
+      btn.disabled  = false;
+      btn.innerHTML = '登入後台';
+    }
+
+  } catch (err) {
+    // 後端不可達時 → 本地帳號 fallback（rg / 123456）
+    console.warn('API 不可達，切換本地驗證', err);
+    if (user === 'rg' && pass === '123456') {
+      showAlert(alertId, '✅ 本地模式登入成功（離線）', 'ok');
+      sessionStorage.setItem('admin_token', 'local_offline_token');
+      setTimeout(() => { window.location.href = '/admin.html'; }, 800);
+    } else {
+      showAlert(alertId, '❌ 無法連線至伺服器，且本地帳號驗證失敗');
+      shakeCard();
+      btn.disabled  = false;
+      btn.innerHTML = '登入後台';
+    }
+  }
+}
+
+// ── 序號驗證 ───────────────────────────────────────────────────────────────
+async function doSerialVerify() {
+  const code    = document.getElementById('serial-input').value.trim().toUpperCase();
+  const btn     = document.getElementById('btn-serial');
+  const alertId = 'alert-serial';
+
+  if (!code) {
+    showAlert(alertId, '❌ 請輸入授權序號');
+    shakeCard(); return;
+  }
+
+  btn.disabled  = true;
+  btn.innerHTML = '<span class="spinner"></span>驗證中...';
+  document.getElementById(alertId).style.display = 'none';
+
+  try {
+    const res  = await fetch(API + '/api/verify?code=' + encodeURIComponent(code));
+    const data = await res.json();
+
+    if (data.valid) {
+      const daysMsg = data.days_left ? `剩餘 <b>${data.days_left}</b> 天（到期：${data.expiry}）` : '永久授權';
+      showAlert(alertId,
+        `✅ 序號有效！${data.first_time ? ' <span style="color:var(--gold)">首次啟用</span>' : ''}<br>${daysMsg}`,
+        'ok');
+      localStorage.setItem('fifa_analyzer_verified', 'true');
+      localStorage.setItem('current_active_serial', code);
+      setTimeout(() => { window.location.href = '/'; }, 1500);
+    } else {
+      showAlert(alertId, '❌ ' + (data.message || '序號無效'));
+      shakeCard();
+    }
+  } catch (err) {
+    showAlert(alertId, '❌ 伺服器無法連線，請稍後再試');
+    shakeCard();
+  }
+
+  btn.disabled  = false;
+  btn.innerHTML = '驗證序號';
+}
+</script>
+</body>
+</html>

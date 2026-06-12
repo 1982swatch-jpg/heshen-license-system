@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>河神電子序號管理系統 - 專業儀表板 v2.0</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f172a;--side:#1e293b;--panel:#1e293b;
+  --accent:#3b82f6;--accent-hover:#2563eb;
+  --success:#10b981;--warning:#f59e0b;--danger:#ef4444;
+  --text:#f8fafc;--text-muted:#94a3b8;--border:rgba(255,255,255,0.1);
+}
+body{min-height:100vh;background:var(--bg);color:var(--text);
+  font-family:"Inter","Microsoft JhengHei",sans-serif; display: flex; overflow-x: hidden;}
+
+/* ── 側邊欄 ── */
+.sidebar{width:260px;background:var(--side);border-right:1px solid var(--border);
+  display:flex;flex-direction:column;position:fixed;height:100vh;transition:all 0.3s; z-index: 100;}
+.side-logo{padding:30px 16px;display:flex;align-items:center;gap:12px;font-size:20px;font-weight:900;}
+.side-logo .icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),#8b5cf6);
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;flex:0 0 40px;}
+.side-logo .brand-text{min-width:0;display:grid;gap:3px;line-height:1.1;}
+.side-logo .brand-title{font-size:18px;font-weight:900;letter-spacing:.2px;white-space:nowrap;}
+.side-logo .brand-subtitle{font-size:10px;font-weight:800;letter-spacing:1.6px;color:var(--text-muted);text-transform:uppercase;white-space:nowrap;}
+.side-user{padding:0 24px 30px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);}
+.side-user .avatar{width:45px;height:45px;background:#334155;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-weight:bold;color:var(--accent);font-size: 20px;}
+.side-nav{flex:1;padding:20px 12px;display:flex;flex-direction:column;gap:5px;}
+.nav-item{padding:12px 16px;border-radius:10px;display:flex;align-items:center;gap:12px;
+  color:var(--text-muted);text-decoration:none;transition:all 0.2s;cursor:pointer;font-size:15px;}
+.nav-item:hover{background:rgba(255,255,255,0.05);color:var(--text);}
+.nav-item.active{background:var(--accent);color:#fff;}
+.side-footer{padding:20px;border-top:1px solid var(--border);}
+
+/* ── 主內容區 ── */
+.main-content{flex:1;margin-left:260px;padding:30px;max-width:calc(100% - 260px); width: 100%;}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px;}
+.header-title{font-size:24px;font-weight:900;}
+.header-actions{display:flex;gap:12px;}
+
+/* ── 數據卡片 ── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:30px;}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:24px;
+  display:flex;align-items:center;gap:20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);}
+.stat-icon{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:24px;}
+.stat-info h4{font-size:14px;color:var(--text-muted);margin-bottom:4px;font-weight:500;}
+.stat-info div{font-size:28px;font-weight:900;}
+.si-blue{background:rgba(59,130,246,0.1);color:#60a5fa;}
+.si-orange{background:rgba(245,158,11,0.1);color:#fbbf24;}
+.si-green{background:rgba(16,185,129,0.1);color:#34d399;}
+.si-red{background:rgba(239,68,68,0.1);color:#f87171;}
+
+/* ── 表格與篩選 ── */
+.table-container{background:var(--panel);border:1px solid var(--border);border-radius:16px;overflow:hidden;}
+.tabs-bar{padding:0 20px;border-bottom:1px solid var(--border);display:flex;gap:30px;}
+.tab{padding:18px 0;font-size:14px;font-weight:600;color:var(--text-muted);cursor:pointer;position:relative;}
+.tab.active{color:var(--accent);}
+.tab.active::after{content:"";position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--accent);border-radius:3px 3px 0 0;}
+
+.table-toolbar{padding:20px;display:flex;justify-content:space-between;gap:20px;}
+.search-input{background:#0f172a;border:1px solid var(--border);border-radius:8px;padding:10px 16px 10px 40px;
+  color:var(--text);width:300px;outline:none;}
+.search-wrapper{position:relative;}
+.search-wrapper::before{content:"🔍";position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px;opacity:0.5;}
+
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{background:rgba(0,0,0,0.1);padding:15px 20px;text-align:left;color:var(--text-muted);font-weight:600;border-bottom:1px solid var(--border);}
+td{padding:15px 20px;border-bottom:1px solid var(--border);color:#e2e8f0;}
+tr:hover td{background:rgba(255,255,255,0.02);}
+
+.serial-cell{display:flex;align-items:center;gap:8px;font-family:monospace;font-weight:600;color:#60a5fa;}
+.badge{padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;}
+.badge-unused{background:rgba(148,163,184,0.1);color:#94a3b8;}
+.badge-active{background:rgba(16,185,129,0.1);color:#10b981;}
+.badge-expired{background:rgba(239,68,68,0.1);color:#ef4444;}
+.badge-disabled{background:rgba(245,158,11,0.1);color:#f59e0b;}
+.badge-used-once{background:rgba(139,92,246,0.14);color:#a78bfa;}
+
+.btn{padding:10px 18px;border-radius:8px;border:none;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:0.2s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-hover);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-muted);}
+.btn-outline:hover{border-color:var(--text);color:var(--text);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+
+.action-links{display:flex;gap:12px;}
+.action-links span{cursor:pointer;color:var(--accent);text-decoration:underline;}
+.action-links span:hover{color:var(--accent-hover);}
+.action-links .act-red{color:var(--danger);}
+
+/* ── 彈窗 ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);
+  display:none;align-items:center;justify-content:center;z-index:1000;padding:20px;}
+.overlay.show{display:flex;}
+.modal{background:var(--panel);width:100%;max-width:480px;border-radius:20px;padding:30px;border:1px solid var(--border);}
+.modal-header{display:flex;justify-content:space-between;margin-bottom:24px; align-items: center;}
+.field{margin-bottom:18px;}
+.field label{display:block;font-size:13px;color:var(--text-muted);margin-bottom:8px;font-weight:600;}
+.field input, .field select{width:100%;background:#0f172a;border:1px solid var(--border);padding:12px;
+  border-radius:8px;color:#fff;outline:none;}
+
+/* ── 分頁 ── */
+.pagination{padding:20px;display:flex;justify-content:space-between;align-items:center;color:var(--text-muted);font-size:13px;}
+.pager-btns{display:flex;gap:8px;}
+.pager-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;
+  align-items:center;justify-content:center;cursor:pointer;}
+.pager-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+/* Toast */
+.toast-wrap{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;}
+.toast{padding:12px 20px;border-radius:10px;background:var(--panel);border:1px solid var(--border);
+  box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);display:flex;align-items:center;gap:10px;animation:tIn 0.3s ease;}
+@keyframes tIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<!-- ══ 側邊欄 ══ -->
+<aside class="sidebar" id="main-sidebar" style="display:none;">
+  <div class="side-logo">
+    <div class="icon">🎰</div>
+    <span class="brand-text"><strong class="brand-title">河神電子管理</strong><small class="brand-subtitle">Serial Console</small></span>
+  </div>
+  <div class="side-user">
+    <div class="avatar" id="avatar-initial">R</div>
+    <div>
+      <div style="font-weight:bold; font-size:15px;" id="u-name-display">rg</div>
+      <div style="font-size:12px; color:var(--text-muted)">系統管理員</div>
+    </div>
+  </div>
+  <nav class="side-nav">
+    <div class="nav-item active" id="nav-serials" onclick="switchMainView('serials', this)">🎫 我的序號</div>
+    <div class="nav-item" id="nav-users" style="display:none" onclick="switchMainView('users', this)">👥 管理帳號</div>
+    <div class="nav-item" onclick="toast('使用記錄模組開發中')">📝 使用記錄</div>
+    <div class="nav-item" onclick="showModal('dlg-pass')">🔑 更改密碼</div>
+    <div class="nav-item" onclick="toggleDarkMode()">🌙 Dark Mode</div>
+  </nav>
+  <div class="side-footer">
+    <div class="nav-item" onclick="doLogout()">🚪 登出</div>
+  </div>
+</aside>
+
+<!-- ══ 主內容 ══ -->
+<main class="main-content" id="main-body" style="display:none;">
+    <!-- ══ 視窗：管理帳號 ══ -->
+    <div id="users-view" style="display:none">
+        <div class="header">
+            <h1 class="header-title">管理帳號</h1>
+            <div class="header-actions"><button class="btn btn-primary" onclick="showModal('dlg-user-add')">＋ 新增管理員</button></div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead><tr><th>用戶名</th><th>權限等級</th><th>操作</th></tr></thead>
+                <tbody id="tbl-users"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ══ 視窗：我的序號 ══ -->
+    <div id="serials-view">
+        <div class="header">
+            <h1 class="header-title">我的序號</h1>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="showModal('dlg-add')">＋ 新增序號</button>
+                <button class="btn btn-danger" onclick="confirmClear()">⚠ 清空全部</button>
+            </div>
+        </div>
+
+        <!-- 統計 -->
+        <div class="stats-grid">
+            <div class="stat-card"><div class="stat-icon si-blue">🎫</div><div class="stat-info"><h4>總序號數</h4><div id="s-total">0</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-orange">⏳</div><div class="stat-info"><h4>未使用</h4><div id="s-unused">0</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-green">✓</div><div class="stat-info"><h4>已使用</h4><div id="s-active">0</div></div></div>
+            <div class="stat-card"><div class="stat-icon si-red">⚠</div><div class="stat-info"><h4>過期/停用</h4><div id="s-expired">0</div></div></div>
+        </div>
+
+        <div class="table-container">
+            <div class="tabs-bar">
+                <div class="tab active" onclick="setFilter('')">全部</div>
+                <div class="tab" onclick="setFilter('一次性')">一次性序號</div>
+                <div class="tab" onclick="setFilter('單次')">單次序號</div>
+                <div class="tab" onclick="setFilter('天')">時效序號</div>
+            </div>
+            <div class="table-toolbar">
+                <div class="search-wrapper"><input type="text" class="search-input" id="kw" placeholder="搜尋序號或備註..." oninput="renderTable()"></div>
+                <button class="btn btn-outline btn-sm" onclick="loadAll()">🔄 重新整理</button>
+            </div>
+            <table>
+                <thead><tr><th>序號</th><th>類型</th><th>狀態</th><th>備註</th><th>啟用時間</th><th>過期時間</th><th>創建時間</th><th>操作</th></tr></thead>
+                <tbody id="tbl-body"></tbody>
+            </table>
+            <div class="pagination">
+                <div id="pagination-info">顯示第 1 到 0 筆，共 0 筆</div>
+                <div class="pager-btns" id="pager-btns"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ══ 登入畫面（全螢幕遮罩） ══ -->
+<div id="login-overlay" style="position:fixed; inset:0; background:radial-gradient(circle at 20% 20%,rgba(59,130,246,0.15),transparent 35%), radial-gradient(circle at 80% 80%,rgba(139,92,246,0.15),transparent 35%), #0f172a; z-index:2000; display:flex; align-items:center; justify-content:center; backdrop-filter: blur(10px);">
+    <div class="modal" style="width:100%; max-width:420px; border:1px solid rgba(59,130,246,0.3); box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); padding:40px;">
+        <div style="text-align:center; margin-bottom:30px;">
+            <div style="width:60px; height:60px; background:linear-gradient(135deg,var(--accent),#8b5cf6); border-radius:15px; display:inline-flex; align-items:center; justify-content:center; font-size:32px; margin-bottom:15px; box-shadow:0 0 20px rgba(59,130,246,0.4);">🎰</div>
+            <h2 style="font-size:24px; font-weight:900; letter-spacing:1px;">管理員登入</h2>
+            <p style="color:var(--text-muted); font-size:14px; margin-top:5px;">河神電子序號管理 v2.0 PRO</p>
+        </div>
+        <div class="field"><label>管理員帳號</label><input type="text" id="l-user" placeholder="請輸入您的帳號"></div>
+        <div class="field" style="margin-bottom:25px;"><label>登入密碼</label><input type="password" id="l-pass" placeholder="請輸入您的密碼"></div>
+        <button class="btn btn-primary" style="width:100%; justify-content:center; padding:16px; border-radius:12px; font-size:16px;" onclick="doLogin()">🚀 安全登入系統</button>
+        <p id="login-err" style="color:var(--danger); font-size:14px; margin-top:20px; text-align:center; display:none; background:rgba(239,68,68,0.1); padding:10px; border-radius:8px;">❌ 帳號或密碼錯誤</p>
+        <div style="margin-top:30px; text-align:center; font-size:12px; color:var(--text-muted);">© 2026 Electronic Game Data Lab</div>
+    </div>
+</div>
+
+<!-- ══ 彈窗：新增序號 ══ -->
+<div class="overlay" id="dlg-add"><div class="modal">
+    <div class="modal-header"><h3>✨ 新增序號</h3><span style="cursor:pointer" onclick="closeModal('dlg-add')">✕</span></div>
+    <div class="field"><label>生成數量 (1-200)</label><input type="number" id="g-count" value="1"></div>
+    <div class="field"><label>序號類型</label><select id="g-days"><option value="0">一次性登入</option><option value="1">1 天試用</option><option value="7">7 天</option><option value="30">30 天</option><option value="365">1 年</option><option value="9999">永久</option></select></div>
+    <div class="field"><label>管理備註</label><input type="text" id="g-note" placeholder="例如：管理員"></div>
+    <div style="display:flex; gap:12px; margin-top:20px;"><button class="btn btn-outline" style="flex:1; justify-content:center;" onclick="closeModal('dlg-add')">取消</button><button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="doGenerate()">確認新增</button></div>
+</div></div>
+
+<!-- ══ 彈窗：新增管理員 ══ -->
+<div class="overlay" id="dlg-user-add"><div class="modal">
+    <div class="modal-header"><h3>👤 新增管理員</h3><span style="cursor:pointer" onclick="closeModal('dlg-user-add')">✕</span></div>
+    <div class="field"><label>管理員帳號</label><input type="text" id="nu-name"></div>
+    <div class="field"><label>登入密碼</label><input type="password" id="nu-pass"></div>
+    <div class="field"><label>權限等級</label><select id="nu-super"><option value="0">一般管理員</option><option value="1">超級管理員</option></select></div>
+    <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:10px;" onclick="doAddAdmin()">確認新增</button>
+</div></div>
+
+<!-- ══ 彈窗：更改密碼 ══ -->
+<div class="overlay" id="dlg-pass"><div class="modal">
+    <div class="modal-header"><h3>🔑 更改密碼</h3><span style="cursor:pointer" onclick="closeModal('dlg-pass')">✕</span></div>
+    <div class="field"><label>舊帳號</label><input type="text" id="p-old-user"></div>
+    <div class="field"><label>舊密碼</label><input type="password" id="p-old-pass"></div>
+    <div class="field"><label>新帳號</label><input type="text" id="p-new-user"></div>
+    <div class="field"><label>新密碼</label><input type="password" id="p-new-pass"></div>
+    <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="doChangePass()">確認更新</button>
+</div></div>
+
+<div class="toast-wrap" id="tw"></div>
+
+<script>
+const API = ''; 
+let allData = [], filtered = [], page = 1, filterType = '';
+const PER = 10;
+
+async function doLogin() {
+    const u = document.getElementById('l-user').value.trim();
+    const p = document.getElementById('l-pass').value;
+    if(!u || !p) return;
+    try {
+        const body = new URLSearchParams({ username: u, password: p });
+        const res = await fetch('/api/admin/login', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body.toString() 
+        });
+        
+        if(res.ok) {
+            const data = await res.json();
+            sessionStorage.setItem('admin_token', 'ok');
+            sessionStorage.setItem('admin_name', u);
+            sessionStorage.setItem('is_super', data.is_superuser ? '1' : '0');
+            document.getElementById('login-overlay').style.display = 'none';
+            initApp();
+            toast('登入成功');
+        } else {
+            document.getElementById('login-err').style.display = 'block';
+        }
+    } catch(e) { toast('連線伺服器失敗', 'danger'); }
+}
+
+function doLogout() { sessionStorage.clear(); location.reload(); }
+
+function initApp() {
+    const name = sessionStorage.getItem('admin_name') || 'rg';
+    const isSuper = sessionStorage.getItem('is_super') === '1';
+    console.log("App Init - Name:", name, "IsSuper:", isSuper);
+    
+    document.getElementById('u-name-display').innerText = name;
+    document.getElementById('avatar-initial').innerText = name[0].toUpperCase();
+    
+    // 強制顯示內容
+    document.getElementById('main-sidebar').style.display = 'flex';
+    document.getElementById('main-body').style.display = 'block';
+    
+    // 權限判斷：只有超級管理員看到管理帳號按鈕
+    const navUsers = document.getElementById('nav-users');
+    if(isSuper) {
+        navUsers.style.display = 'flex';
+    } else {
+        navUsers.style.display = 'none';
+    }
+    
+    loadAll();
+}
+
+window.onload = () => { 
+    if(sessionStorage.getItem('admin_token')) { 
+        document.getElementById('login-overlay').style.display = 'none'; 
+        initApp(); 
+    } 
+    document.getElementById('l-pass').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
+}
+
+async function loadAll() {
+    try {
+        const currentUser = sessionStorage.getItem('admin_name') || 'rg';
+        const res = await fetch('/api/admin/licenses?username=' + encodeURIComponent(currentUser));
+        allData = await res.json();
+        updateStats(); renderTable();
+    } catch(e) { toast('數據加載失敗', 'danger'); }
+}
+
+function updateStats() {
+    document.getElementById('s-total').innerText = allData.length;
+    document.getElementById('s-unused').innerText = allData.filter(l => l.status === 'unused').length;
+    document.getElementById('s-active').innerText = allData.filter(l => l.status === 'active').length;
+    document.getElementById('s-expired').innerText = allData.filter(l => l.status === 'expired' || l.status === 'disabled' || l.status === 'used_once').length;
+}
+
+function switchMainView(view, el) {
+    document.getElementById('serials-view').style.display = view === 'serials' ? 'block' : 'none';
+    document.getElementById('users-view').style.display = view === 'users' ? 'block' : 'none';
+    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+    el.classList.add('active');
+    if(view === 'users') loadUsers();
+}
+
+async function loadUsers() {
+    try {
+        const res = await fetch('/api/admin/users');
+        const users = await res.json();
+        const tbody = document.getElementById('tbl-users');
+        tbody.innerHTML = users.map(u => `<tr><td>${u.username} ${u.username === 'rg' ? '<small>(最高權限)</small>' : ''}</td><td>${u.is_superuser ? '超級管理員' : '一般管理員'}</td><td>${u.username !== 'rg' ? `<span class="act-red" style="cursor:pointer; text-decoration:underline;" onclick="deleteUser(${u.id})">刪除用戶</span>` : '-'}</td></tr>`).join('');
+    } catch(e) { toast('用戶加載失敗', 'danger'); }
+}
+
+async function doAddAdmin() {
+    const u = document.getElementById('nu-name').value.trim(), p = document.getElementById('nu-pass').value, s = document.getElementById('nu-super').value === '1';
+    if(!u || !p) return;
+    try {
+        const body = new URLSearchParams({ username: u, password: p, is_super: s });
+        const res = await fetch('/api/admin/users/add', { method: 'POST', body: body });
+        if(res.ok) { toast('新增成功'); closeModal('dlg-user-add'); loadUsers(); }
+        else { const d = await res.json(); toast(d.detail || '新增失敗', 'danger'); }
+    } catch(e) { toast('伺服器錯誤', 'danger'); }
+}
+
+async function deleteUser(id) { if(!confirm('確定要刪除嗎？')) return; try { const res = await fetch(`/api/admin/users/delete?user_id=${id}`, { method: 'POST' }); if(res.ok) { toast('已刪除'); loadUsers(); } } catch(e) { toast('失敗', 'danger'); } }
+
+function setFilter(t) { filterType = t; document.querySelectorAll('.tab').forEach(el => el.classList.toggle('active', el.innerText.includes(t || '全部'))); page = 1; renderTable(); }
+
+function renderTable() {
+    const kw = document.getElementById('kw').value.toLowerCase();
+    filtered = allData.filter(l => (l.serial_code.toLowerCase().includes(kw) || (l.note||'').toLowerCase().includes(kw)) && (!filterType || l.type.includes(filterType)));
+    const start = (page - 1) * PER, end = Math.min(start + PER, filtered.length), rows = filtered.slice(start, end);
+    const tbody = document.getElementById('tbl-body');
+    if(rows.length === 0) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:50px;">🔍 找不到序號</td></tr>';
+    else tbody.innerHTML = rows.map(l => `<tr><td><div class="serial-cell">${l.serial_code} <span style="cursor:pointer" onclick="cp('${l.serial_code}')">📋</span></div></td><td>${l.type}</td><td>${badge(l.status)}</td><td>${l.note || '-'}</td><td>${fmtDate(l.activation_date)}</td><td>${fmtDate(l.expiry_date)}</td><td>${fmtDate(l.created_at)}</td><td><div class="action-links"><span onclick="changeDays(${l.id}, '${l.type}')">編輯</span><span onclick="act(${l.id}, '${l.status === 'disabled' ? 'enable' : 'disable'}')">${l.status === 'disabled' ? '啟用' : '停用'}</span><span class="act-red" onclick="act(${l.id}, 'delete')">刪除</span></div></td></tr>`).join('');
+    document.getElementById('pagination-info').innerText = `顯示第 ${filtered.length > 0 ? start + 1 : 0} 到 ${end} 筆，共 ${filtered.length} 筆`;
+    renderPager();
+}
+
+function badge(s) { const map = { unused: ['未使用', 'badge-unused'], active: ['啟用中', 'badge-active'], expired: ['已過期', 'badge-expired'], disabled: ['已停用', 'badge-disabled'], used_once: ['已用完', 'badge-used-once'] }; const i = map[s] || [s, 'badge-unused']; return `<span class="badge ${i[1]}">${i[0]}</span>`; }
+function fmtDate(d) { if(!d) return '-'; const date = new Date(d); return date.getFullYear() + '-' + (date.getMonth()+1).toString().padStart(2,'0') + '-' + date.getDate().toString().padStart(2,'0') + ' ' + date.getHours().toString().padStart(2,'0') + ':' + date.getMinutes().toString().padStart(2,'0'); }
+function toast(msg, type = 'success') { const w = document.getElementById('tw'), t = document.createElement('div'); t.className = 'toast'; t.innerHTML = (type === 'success' ? '✅ ' : '❌ ') + msg; w.appendChild(t); setTimeout(() => t.remove(), 3000); }
+function cp(text) { navigator.clipboard.writeText(text); toast('已複製'); }
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+async function doGenerate() {
+    const c = document.getElementById('g-count').value;
+    const d = document.getElementById('g-days').value;
+    const n = document.getElementById('g-note').value;
+    const currentUser = sessionStorage.getItem('admin_name') || 'rg';
+
+    try {
+        const body = new URLSearchParams({
+            username: currentUser
+        });
+
+        const res = await fetch(`/api/admin/generate?count=${c}&days=${d}&note=${encodeURIComponent(n)}`, {
+            method: 'POST',
+            body: body
+        });
+
+        if(res.ok) {
+            toast(`生成成功`);
+            closeModal('dlg-add');
+            loadAll();
+        }
+    } catch(e) {
+        toast('失敗', 'danger');
+    }
+}async function act(id, a) { if(!confirm(`確定執行 ${a} 嗎？`)) return; try { const res = await fetch(`/api/admin/action?serial_id=${id}&action=${a}`, { method: 'POST' }); if(res.ok) { toast('成功'); loadAll(); } } catch(e) { toast('失敗', 'danger'); } }
+async function confirmClear() { if(!confirm('⚠ 確定清空全部？')) return; try { const res = await fetch(`/api/admin/clear-all`, { method: 'POST' }); if(res.ok) { toast('已清空'); loadAll(); } } catch(e) { toast('失敗', 'danger'); } }
+async function changeDays(id, ct) { const d = prompt("輸入新天數，0 代表一次性登入：", ct.includes("一次性") ? "0" : ct.replace(" 天", "")); if(d === null) return; try { const res = await fetch(`/api/admin/action?serial_id=${id}&action=update_days&days=${d}`, { method: 'POST' }); if(res.ok) { toast('已更新'); loadAll(); } } catch(e) { toast('失敗', 'danger'); } }
+async function doChangePass() { const body = new URLSearchParams({ old_user: document.getElementById('p-old-user').value, old_pass: document.getElementById('p-old-pass').value, new_user: document.getElementById('p-new-user').value, new_pass: document.getElementById('p-new-pass').value }); try { const res = await fetch(`/api/admin/change-password`, { method: 'POST', body: body }); if(res.ok) { toast('成功，請重登'); setTimeout(() => doLogout(), 1500); } else { toast('失敗，請查舊帳密', 'danger'); } } catch(e) { toast('錯誤', 'danger'); } }
+function renderPager() { const ps = Math.ceil(filtered.length / PER), c = document.getElementById('pager-btns'); let h = ''; for(let i=1; i<=ps; i++) h += `<div class="pager-btn ${i === page ? 'active' : ''}" onclick="goPage(${i})">${i}</div>`; c.innerHTML = h; }
+function goPage(p) { page = p; renderTable(); }
+function toggleDarkMode() { toast('深色模式已是預設'); }
+</script>
+</body>
+</html>

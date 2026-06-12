@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>儀表板 - 河神電子序號管理</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: #070912;
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+        }
+        .sidebar {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .stat-card {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .table-row:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-unused { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .status-active { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .status-expired { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .status-disabled { background: rgba(107, 114, 128, 0.2); color: #9ca3af; }
+    </style>
+</head>
+<body class="min-h-screen flex">
+    <!-- Sidebar -->
+    <aside class="sidebar w-64 p-6 flex flex-col hidden md:flex">
+        <div class="mb-10 flex items-center gap-3">
+            <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <span class="text-gray-900 font-black">L</span>
+            </div>
+            <h2 class="text-xl font-black tracking-tight">後台管理</h2>
+        </div>
+        
+        <nav class="flex-1 space-y-2">
+            <a href="#" class="flex items-center gap-3 px-4 py-3 bg-emerald-500/10 text-emerald-400 rounded-xl font-medium">
+                <span>📊</span> 儀表板
+            </a>
+            <a href="#" onclick="showGenerateModal()" class="flex items-center gap-3 px-4 py-3 hover:bg-white/5 rounded-xl transition-all">
+                <span>➕</span> 生成序號
+            </a>
+        </nav>
+        
+        <button onclick="logout()" class="mt-auto flex items-center gap-3 px-4 py-3 hover:bg-red-500/10 text-red-400 rounded-xl transition-all">
+            <span>🚪</span> 登出系統
+        </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4 md:p-10 overflow-y-auto">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h1 class="text-3xl font-bold">歡迎回來, Admin</h1>
+                <p class="text-gray-500">這是您目前的系統概況</p>
+            </div>
+            <button onclick="showGenerateModal()" class="bg-emerald-500 text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-emerald-400 transition-all shadow-lg shadow-emerald-500/20">
+                + 批次生成序號
+            </button>
+        </header>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+            <div class="stat-card p-6 rounded-3xl">
+                <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-1">總序號數</p>
+                <h3 id="statTotal" class="text-3xl font-black">0</h3>
+            </div>
+            <div class="stat-card p-6 rounded-3xl">
+                <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-1">未使用</p>
+                <h3 id="statUnused" class="text-3xl font-black text-blue-400">0</h3>
+            </div>
+            <div class="stat-card p-6 rounded-3xl">
+                <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-1">已啟用</p>
+                <h3 id="statActive" class="text-3xl font-black text-emerald-400">0</h3>
+            </div>
+            <div class="stat-card p-6 rounded-3xl">
+                <p class="text-gray-500 text-xs font-bold uppercase tracking-widest mb-1">已過期/停用</p>
+                <h3 id="statExpired" class="text-3xl font-black text-red-400">0</h3>
+            </div>
+        </div>
+
+        <!-- License Table -->
+        <div class="stat-card rounded-3xl overflow-hidden">
+            <div class="p-6 border-b border-white/5 flex justify-between items-center">
+                <h4 class="font-bold">授權序號清單</h4>
+                <div class="flex gap-2">
+                    <input type="text" placeholder="搜尋序號..." class="bg-black/20 border border-white/10 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-emerald-500">
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr class="text-gray-500 text-xs uppercase tracking-widest">
+                            <th class="p-6">序號</th>
+                            <th class="p-6">類型</th>
+                            <th class="p-6">狀態</th>
+                            <th class="p-6">到期日</th>
+                            <th class="p-6">備註</th>
+                            <th class="p-6">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="licenseTableBody">
+                        <!-- Loaded by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Generate Modal -->
+    <div id="genModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center hidden z-50 p-4">
+        <div class="stat-card w-full max-w-lg rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-2xl font-bold mb-6">批次生成序號</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">生成數量</label>
+                    <input type="number" id="genCount" value="10" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">有效期 (天)</label>
+                    <input type="number" id="genDays" value="7" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-400 mb-1">備註 (可選)</label>
+                    <input type="text" id="genNote" placeholder="例如：VIP客戶" class="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 outline-none focus:border-emerald-500">
+                </div>
+            </div>
+            <div class="flex gap-4 mt-8">
+                <button onclick="hideGenerateModal()" class="flex-1 py-3 border border-white/10 rounded-xl font-bold hover:bg-white/5 transition-all">取消</button>
+                <button onclick="confirmGenerate()" class="flex-1 py-3 bg-emerald-500 text-gray-900 rounded-xl font-bold hover:bg-emerald-400 transition-all">確認生成</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('admin_token');
+        if (!token) window.location.href = 'login.html';
+
+        async function fetchStats() {
+            const res = await fetch('/api/admin/stats');
+            const data = await res.json();
+            document.getElementById('statTotal').innerText = data.total;
+            document.getElementById('statUnused').innerText = data.unused;
+            document.getElementById('statActive').innerText = data.active;
+            document.getElementById('statExpired').innerText = data.expired;
+        }
+
+        async function fetchLicenses() {
+            const res = await fetch('/api/admin/licenses');
+            const licenses = await res.json();
+            const body = document.getElementById('licenseTableBody');
+            body.innerHTML = '';
+            
+            licenses.forEach(l => {
+                const tr = document.createElement('tr');
+                tr.className = 'table-row border-t border-white/5 transition-all';
+                tr.innerHTML = `
+                    <td class="p-6 font-mono text-emerald-400">${l.serial_code}</td>
+                    <td class="p-6 text-sm">${l.type}</td>
+                    <td class="p-6">
+                        <span class="status-badge status-${l.status}">${l.status === 'unused' ? '未使用' : l.status === 'active' ? '啟用中' : l.status === 'expired' ? '已過期' : '已停用'}</span>
+                    </td>
+                    <td class="p-6 text-sm text-gray-400">${l.expiry_date ? new Date(l.expiry_date).toLocaleDateString() : '-'}</td>
+                    <td class="p-6 text-sm text-gray-400">${l.note || ''}</td>
+                    <td class="p-6">
+                        <div class="flex gap-3">
+                            ${l.status !== 'disabled' ? 
+                                `<button onclick="takeAction(${l.id}, 'disable')" class="text-xs text-yellow-500 hover:underline">停用</button>` :
+                                `<button onclick="takeAction(${l.id}, 'enable')" class="text-xs text-blue-500 hover:underline">啟用</button>`
+                            }
+                            <button onclick="takeAction(${l.id}, 'delete')" class="text-xs text-red-500 hover:underline">刪除</button>
+                        </div>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        async function takeAction(id, action) {
+            if (!confirm(`確定要執行 ${action} 操作嗎？`)) return;
+            const res = await fetch(`/api/admin/action?serial_id=${id}&action=${action}`, { method: 'POST' });
+            if (res.ok) {
+                fetchStats();
+                fetchLicenses();
+            }
+        }
+
+        function showGenerateModal() { document.getElementById('genModal').classList.remove('hidden'); }
+        function hideGenerateModal() { document.getElementById('genModal').classList.add('hidden'); }
+
+        async function confirmGenerate() {
+            const count = document.getElementById('genCount').value;
+            const days = document.getElementById('genDays').value;
+            const note = document.getElementById('genNote').value;
+            
+            const res = await fetch(`/api/admin/generate?count=${count}&days=${days}&note=${encodeURIComponent(note)}`, { method: 'POST' });
+            if (res.ok) {
+                hideGenerateModal();
+                fetchStats();
+                fetchLicenses();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('admin_token');
+            window.location.href = 'login.html';
+        }
+
+        // Init
+        fetchStats();
+        fetchLicenses();
+    </script>
+</body>
+</html>
